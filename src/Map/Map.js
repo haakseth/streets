@@ -1,19 +1,37 @@
-import React, { useRef, useEffect, useState } from 'react';
-import mapboxgl, { NavigationControl } from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
-import Panel from './components/Panel';
-import { useMedia } from './hooks/useMedia';
+import React, { useRef, useEffect, useState } from "react";
+import mapboxgl, { NavigationControl } from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+import Panel from "./components/Panel";
+import { useMedia } from "./hooks/useMedia";
+import { useSpring, animated } from "react-spring";
 
 export default function Map() {
   const mapContainer = useRef();
   const [map, setMap] = useState(undefined);
   const [streets, setStreets] = useState([]);
-  const [hoveredStreet, setHoveredStreet] = useState('');
+  const [hoveredStreet, setHoveredStreet] = useState("");
 
+  const infoStyle = useSpring({
+    position: "absolute",
+    bottom: streets.length ? -60 : 40,
+    left: 40,
+    width: 250,
+    height: 30,
+    zIndex: 3,
+    backgroundColor: "hsl(210, 36%, 96%)",
+    boxShadow: "0 4px 12px 0 rgba(16, 42, 67, 0.2)",
+    padding: "1em 0.5em",
+    opacity: 0.9,
+    borderRadius: 3,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: 600
+  });
   const isSmallScreen = useMedia([`(max-width: 600px)`], [true], false);
   const getMapStreets = () => {
     const features = map.queryRenderedFeatures({
-      layers: ['road']
+      layers: ["road"]
     });
     const keys = new Set();
     const primaryRoads = features
@@ -35,18 +53,18 @@ export default function Map() {
   useEffect(() => {
     if (map) {
       getMapStreets();
-      map.on('mousemove', e => {
+      map.on("mousemove", e => {
         const features = map.queryRenderedFeatures(e.point, {
-          layers: ['road']
+          layers: ["road"]
         });
         if (features.length) {
-          map.getCanvas().style.cursor = 'pointer';
+          map.getCanvas().style.cursor = "pointer";
           setHoveredStreet(features[0].properties.name);
         } else {
-          map.getCanvas().style.cursor = '';
+          map.getCanvas().style.cursor = "";
         }
       });
-      map.on('moveend', getMapStreets);
+      map.on("moveend", getMapStreets);
     }
     // eslint-disable-next-line
   }, [map]);
@@ -54,28 +72,28 @@ export default function Map() {
   useEffect(() => {
     const initializeMap = ({ setMap, mapContainer }) => {
       mapboxgl.accessToken =
-        'pk.eyJ1IjoiaGFha3NldGgiLCJhIjoiY2l5NGg2Y3ljMDAxaTJ5bHF5aXF0NHRuciJ9.aVkFfSGQhUYb9bmf4JtkTg';
+        "pk.eyJ1IjoiaGFha3NldGgiLCJhIjoiY2l5NGg2Y3ljMDAxaTJ5bHF5aXF0NHRuciJ9.aVkFfSGQhUYb9bmf4JtkTg";
       const mapboxMap = new mapboxgl.Map({
         container: mapContainer.current,
-        style: 'mapbox://styles/haakseth/ck2kw48j83sjy1cpohx5kqxou',
+        style: "mapbox://styles/haakseth/ck2kw48j83sjy1cpohx5kqxou",
         center: [12.57, 55.67],
         zoom: 12.5,
         maxZoom: 16
       });
 
-      mapboxMap.on('load', () => {
+      mapboxMap.on("load", () => {
         mapboxMap.addLayer(
           {
-            id: 'hovered-street',
-            source: 'composite',
-            'source-layer': 'road',
-            type: 'line',
+            id: "hovered-street",
+            source: "composite",
+            "source-layer": "road",
+            type: "line",
             paint: {
-              'line-color': '#ed6498',
-              'line-width': [
-                'interpolate',
-                ['exponential', 2],
-                ['zoom'],
+              "line-color": "#ed6498",
+              "line-width": [
+                "interpolate",
+                ["exponential", 2],
+                ["zoom"],
                 5,
                 0.5,
                 12,
@@ -84,13 +102,13 @@ export default function Map() {
                 30
               ]
             },
-            filter: ['==', 'name', '']
+            filter: ["==", "name", ""]
           },
-          'road-label'
+          "road-label"
         );
         mapboxMap.addControl(
           new NavigationControl({ showCompass: false }),
-          'top-left'
+          "top-left"
         );
         setMap(mapboxMap);
       });
@@ -101,10 +119,10 @@ export default function Map() {
 
   useEffect(() => {
     if (map) {
-      map.setFilter('hovered-street', [
-        '==',
-        'name',
-        hoveredStreet ? hoveredStreet : ''
+      map.setFilter("hovered-street", [
+        "==",
+        "name",
+        hoveredStreet ? hoveredStreet : ""
       ]);
     }
     // eslint-disable-next-line
@@ -112,7 +130,7 @@ export default function Map() {
   const onStreetClick = street => {
     const features = map
       .queryRenderedFeatures({
-        layers: ['road']
+        layers: ["road"]
       })
       .filter(f => {
         return f.properties.name === street;
@@ -143,13 +161,13 @@ export default function Map() {
   return (
     <div
       style={{
-        position: 'absolute',
+        position: "absolute",
         zIndex: 1,
         top: 0,
         bottom: 0,
         left: 0,
         right: 0,
-        overflow: 'none'
+        overflow: "none"
       }}
       ref={el => (mapContainer.current = el)}
     >
@@ -160,6 +178,9 @@ export default function Map() {
         setHoveredStreet={setHoveredStreet}
         onStreetClick={onStreetClick}
       />
+      <animated.div style={infoStyle}>
+        Zoom ind til gadenivå for udforske
+      </animated.div>
     </div>
   );
 }
